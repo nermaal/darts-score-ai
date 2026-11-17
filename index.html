@@ -11,7 +11,7 @@
 <section class="panel"><div class="row"><div><label>Játéktípus</label><select id="game"><option value="301">301</option><option value="501" selected>501</option><option value="701">701</option><option value="1001">1001</option><option value="3001">3001</option></select></div><div><label>Játékosok</label><select id="players"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div></div><div class="row" style="margin-top:10px"><label style="display:flex;align-items:center;gap:8px"><input id="doubleout" type="checkbox" style="width:auto"> Double Out</label><label style="display:flex;align-items:center;gap:8px"><input id="lastdouble" type="checkbox" style="width:auto"> Utolsó nyíl dupla</label><button id="newgame" class="primary">Új játék</button></div></section>
 <section class="panel"><div class="scores" id="scores"></div></section>
 <section class="panel"><div class="row"><div><label>Dobott pont (az egész kör, 0–180)</label><input id="throw" type="number" min="0" max="180" inputmode="numeric" placeholder="pl. 100"></div><div style="align-self:end"><button id="submit" class="primary">Kör rögzítése</button></div></div><div class="keypad" id="pad"></div><div class="actions" style="margin-top:10px"><button id="undo">↶ Visszavonás</button><button id="next">Következő játékos →</button></div><div id="message" class="status" aria-live="polite">Add meg a kör összpontszámát.</div></section>
-<section class="panel"><h3 style="margin:0 0 10px">Kamera és táblakalibrálás</h3><div class="camwrap"><video id="video" class="camera" autoplay playsinline muted></video><canvas id="calcanvas" class="calcanvas"></canvas></div><div class="actions" style="margin-top:9px"><button id="startcam" class="primary">Kamera indítása</button><button id="stopcam">Leállítás</button></div><div class="actions" style="margin-top:8px"><button id="autodetect" class="primary">Tábla automatikus keresése</button></div><div class="actions" style="margin-top:8px"><button id="calstart">Kézi kalibrálás</button><button id="calreset">Kalibrálás törlése</button></div><div class="calhelp" id="calhelp">Kalibrálás: indítsd el a kamerát, majd a kalibrálás gombot. A képen koppints sorban a tábla közepére, a dupla gyűrű bal szélére, a dupla gyűrű felső szélére, végül a 20-as szektor középvonalára. A telefon maradjon fix helyen.</div><div class="status" id="camstatus">A kamera előnézet működik. Az automatikus keresés a tábla kör alakú külső peremét próbálja megtalálni; a szektorirány és a nyilak felismerése még külön fejlesztés.</div><div id="calresult" class="status"></div></section>
+<section class="panel"><h3 style="margin:0 0 10px">Kamera és táblakalibrálás</h3><div class="camwrap"><video id="video" class="camera" autoplay playsinline muted></video><canvas id="calcanvas" class="calcanvas"></canvas></div><div class="actions" style="margin-top:9px"><button id="startcam" class="primary">Kamera indítása</button><button id="stopcam">Leállítás</button></div><div class="actions" style="margin-top:8px"><button id="autodetect" class="primary">Tábla automatikus keresése</button></div><div class="actions" style="margin-top:8px"><button id="calstart">Kézi kalibrálás</button><button id="calreset">Kalibrálás törlése</button></div><div class="calhelp" id="calhelp">Kalibrálás: indítsd el a kamerát, majd a kalibrálás gombot. A képen koppints sorban a tábla közepére, a dupla gyűrű bal szélére, a dupla gyűrű felső szélére, végül a 20-as szektor középvonalára. A telefon maradjon fix helyen.</div><div class="status" id="camstatus">A kamera előnézet működik. Az automatikus keresés a tábla külső peremét kontúr- és ellipszisillesztéssel próbálja megtalálni; a szektorirány és a nyilak felismerése még külön fejlesztés.</div><div id="calresult" class="status"></div></section>
 <section class="panel"><h3 style="margin:0 0 8px">Játékmenet</h3><div id="log" class="history">Még nincs dobás.</div><p class="status warn">Fontos: ez egy működő pontszámoló prototípus. A kamera jelenleg csak képet mutat; AI-találatfelismerést és automatikus szektorazonosítást még nem végez.</p></section>
 </main>
 <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
@@ -34,7 +34,7 @@ function fitCanvas(){
 }
 function drawCal(){
  const r=cv.getBoundingClientRect();ctx.clearRect(0,0,r.width,r.height);
- if(autoCircle){ctx.beginPath();ctx.ellipse(autoCircle.x*r.width,autoCircle.y*r.height,autoCircle.rx*r.width,autoCircle.ry*r.height,0,0,Math.PI*2);ctx.strokeStyle='#42e6ff';ctx.lineWidth=3;ctx.stroke();ctx.beginPath();ctx.arc(autoCircle.x*r.width,autoCircle.y*r.height,5,0,Math.PI*2);ctx.fillStyle='#42e6ff';ctx.fill();}
+ if(autoCircle){ctx.save();ctx.translate(autoCircle.x*r.width,autoCircle.y*r.height);ctx.rotate(autoCircle.angle||0);ctx.beginPath();ctx.ellipse(0,0,autoCircle.rx*r.width,autoCircle.ry*r.height,0,0,Math.PI*2);ctx.strokeStyle='#42e6ff';ctx.lineWidth=3;ctx.stroke();ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fillStyle='#42e6ff';ctx.fill();ctx.restore();}
  calPts.forEach((p,i)=>{const x=p.x*r.width,y=p.y*r.height;ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fillStyle='#35c7a2';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#061b18';ctx.stroke();ctx.fillStyle='white';ctx.font='bold 14px system-ui';ctx.fillText(String(i+1),x+10,y-10);});
  if(calPts.length>=3){const c=calPts[0],l=calPts[1],t=calPts[2];const rx=Math.hypot((l.x-c.x)*r.width,(l.y-c.y)*r.height);const ry=Math.hypot((t.x-c.x)*r.width,(t.y-c.y)*r.height);ctx.beginPath();ctx.ellipse(c.x*r.width,c.y*r.height,rx,ry,0,0,Math.PI*2);ctx.strokeStyle='#35c7a2';ctx.lineWidth=2;ctx.stroke();}
  if(calPts.length>=3){const c=calPts[0],x=calPts[1],y=calPts[2];ctx.beginPath();ctx.moveTo(c.x*r.width,c.y*r.height);ctx.lineTo(x.x*r.width,x.y*r.height);ctx.moveTo(c.x*r.width,c.y*r.height);ctx.lineTo(y.x*r.width,y.y*r.height);ctx.strokeStyle='#ffd18a';ctx.lineWidth=2;ctx.stroke();}
@@ -58,33 +58,53 @@ try{const saved=JSON.parse(localStorage.getItem('dartCalibration')||'null');if(s
 fitCanvas();calPrompt();
 
 
-// Kísérleti külső perem-keresés OpenCV Hough-kördetektálással.
-// Egy képkockán fut, a kamera elmozdítása után újra kell indítani.
+// Külső perem keresése: Canny-élek + kontúrok + ellipszisillesztés.
+// A képkocka alapján becsüli meg a táblát; eredménye mindig vizuálisan ellenőrizendő.
 $('autodetect').onclick=async()=>{
  const video=$('video');
  if(!video.srcObject||video.readyState<2){$('camstatus').textContent='Előbb indítsd el a kamerát, és várd meg az élő képet.';return;}
- $('camstatus').textContent='Tábla keresése folyamatban…';
- const deadline=Date.now()+12000;
- while(!(window.cv&&cv.Mat&&cv.HoughCircles)&&Date.now()<deadline) await new Promise(r=>setTimeout(r,250));
- if(!(window.cv&&cv.Mat&&cv.HoughCircles)){$('camstatus').textContent='Az OpenCV könyvtár nem töltődött be. Ellenőrizd az internetkapcsolatot, majd frissítsd az oldalt.';return;}
- let srcMat=null,gray=null,blur=null,circles=null;
+ $('camstatus').textContent='A külső perem keresése folyamatban…';
+ const deadline=Date.now()+15000;
+ while(!(window.cv&&cv.Mat&&cv.findContours&&cv.fitEllipse)&&Date.now()<deadline) await new Promise(r=>setTimeout(r,250));
+ if(!(window.cv&&cv.Mat&&cv.findContours&&cv.fitEllipse)){$('camstatus').textContent='Az OpenCV könyvtár nem töltődött be. Ellenőrizd az internetkapcsolatot, majd frissítsd az oldalt.';return;}
+ let srcMat=null,gray=null,blur=null,edges=null,contours=null,hierarchy=null;
  try{
-  const w=640,h=Math.round(video.videoHeight*(640/video.videoWidth));
+  const w=800,h=Math.round(video.videoHeight*(800/video.videoWidth));
   const temp=document.createElement('canvas');temp.width=w;temp.height=h;
-  const tctx=temp.getContext('2d');tctx.drawImage(video,0,0,w,h);
-  srcMat=cv.imread(temp);gray=new cv.Mat();blur=new cv.Mat();circles=new cv.Mat();
+  temp.getContext('2d').drawImage(video,0,0,w,h);
+  srcMat=cv.imread(temp);gray=new cv.Mat();blur=new cv.Mat();edges=new cv.Mat();
+  contours=new cv.MatVector();hierarchy=new cv.Mat();
   cv.cvtColor(srcMat,gray,cv.COLOR_RGBA2GRAY);
-  cv.medianBlur(gray,blur,5);
-  cv.HoughCircles(blur,circles,cv.HOUGH_GRADIENT,1.2,Math.max(40,w/5),120,35,Math.round(w*.18),Math.round(w*.49));
-  if(circles.cols<1){autoCircle=null;$('camstatus').textContent='Nem találtam megbízható külső kört. Próbáld úgy beállítani a kamerát, hogy a teljes fekete perem látszódjon, ne legyen becsillanás, majd próbáld újra.';drawCal();return;}
+  cv.GaussianBlur(gray,blur,new cv.Size(7,7),1.5,1.5,cv.BORDER_DEFAULT);
+  cv.Canny(blur,edges,45,130);
+  cv.findContours(edges,contours,hierarchy,cv.RETR_LIST,cv.CHAIN_APPROX_NONE);
   let best=null,bestScore=-Infinity;
-  for(let i=0;i<circles.cols;i++){const x=circles.data32F[i*3],y=circles.data32F[i*3+1],rad=circles.data32F[i*3+2];const score=rad-Math.abs(x-w/2)*.12-Math.abs(y-h/2)*.12;if(score>bestScore){bestScore=score;best={x:x/w,y:y/h,r:rad/w,aspect:h/w};}}
-  autoCircle={x:best.x,y:best.y,rx:best.r,ry:best.r};
-  $('camstatus').textContent='Kísérleti körfelismerés: találtam egy lehetséges külső peremet. Ellenőrizd, hogy a türkiz kör valóban a tábla külső peremén fut-e. Ez még nem teljes táblafelismerés.';
-  $('calresult').textContent='A keresés egy képkockán történt. Ha elmozdítod a telefont, nyomd meg újra a Tábla automatikus keresése gombot.';
+  for(let i=0;i<contours.size();i++){
+   const c=contours.get(i);
+   try{
+    if(c.rows<40)continue;
+    const e=cv.fitEllipse(c);
+    const rw=e.size.width/2,rh=e.size.height/2;
+    const major=Math.max(rw,rh),minor=Math.min(rw,rh);
+    const ratio=minor/major, cx=e.center.x,cy=e.center.y;
+    if(major<w*.25||major>w*.53||ratio<.62)continue;
+    if(cx<w*.18||cx>w*.82||cy<h*.12||cy>h*.88)continue;
+    const area=Math.PI*rw*rh;
+    // Nagy, közel középen lévő, nem túl lapos ellipszis előnyben.
+    const centerPenalty=(Math.abs(cx-w*.5)+Math.abs(cy-h*.5))*.18;
+    const score=area*ratio-centerPenalty*1000;
+    if(score>bestScore){bestScore=score;best={x:cx/w,y:cy/h,rx:rw/w,ry:rh/h,angle:e.angle*Math.PI/180};}
+   }catch(_){}
+   finally{c.delete();}
+  }
+  if(!best){autoCircle=null;$('camstatus').textContent='Nem sikerült megbízható külső peremet találni. Próbáld meg kissé távolabbról, egyenletes megvilágításban, a teljes fekete peremet a képen tartva.';drawCal();return;}
+  // Az illesztett ellipszis tengelyei a kamera képkoordinátáihoz igazodnak.
+  autoCircle=best;
+  $('camstatus').textContent='Találtam egy lehetséges külső peremet. Ellenőrizd a türkiz ellipszis illeszkedését; a felismerés még kísérleti, nem garantált.';
+  $('calresult').textContent='A felismerés egy képkockán futott. Ha elmozdítod a telefont, indítsd újra a keresést. A szektorirány és a nyilak felismerése még nincs kész.';
   drawCal();
- }catch(e){$('camstatus').textContent='Körfelismerési hiba: '+e.message;}
- finally{[srcMat,gray,blur,circles].forEach(m=>{if(m)m.delete();});}
+ }catch(e){$('camstatus').textContent='Peremfelismerési hiba: '+e.message;}
+ finally{[srcMat,gray,blur,edges,hierarchy].forEach(m=>{if(m)m.delete();});if(contours){for(let i=0;i<contours.size();i++){try{contours.get(i).delete()}catch(_){}}contours.delete();}}
 };
 
 let stream=null;$('startcam').onclick=async()=>{try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});$('video').srcObject=stream;$('camstatus').textContent='Kamera aktív. Indítható a kézi táblakalibrálás.';fitCanvas()}catch(e){$('camstatus').textContent='Nem sikerült elindítani a kamerát: '+e.message+' — ellenőrizd a kameraengedélyt és a biztonságos (HTTPS) megnyitást.'}};$('stopcam').onclick=()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('video').srcObject=null;$('camstatus').textContent='Kamera leállítva.';calMode=false};fresh();
