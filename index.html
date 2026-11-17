@@ -11,7 +11,7 @@
 <section class="panel"><div class="row"><div><label>Játéktípus</label><select id="game"><option value="301">301</option><option value="501" selected>501</option><option value="701">701</option><option value="1001">1001</option><option value="3001">3001</option></select></div><div><label>Játékosok</label><select id="players"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div></div><div class="row" style="margin-top:10px"><label style="display:flex;align-items:center;gap:8px"><input id="doubleout" type="checkbox" style="width:auto"> Double Out</label><label style="display:flex;align-items:center;gap:8px"><input id="lastdouble" type="checkbox" style="width:auto"> Utolsó nyíl dupla</label><button id="newgame" class="primary">Új játék</button></div></section>
 <section class="panel"><div class="scores" id="scores"></div></section>
 <section class="panel"><div class="row"><div><label>Dobott pont (az egész kör, 0–180)</label><input id="throw" type="number" min="0" max="180" inputmode="numeric" placeholder="pl. 100"></div><div style="align-self:end"><button id="submit" class="primary">Kör rögzítése</button></div></div><div class="keypad" id="pad"></div><div class="actions" style="margin-top:10px"><button id="undo">↶ Visszavonás</button><button id="next">Következő játékos →</button></div><div id="message" class="status" aria-live="polite">Add meg a kör összpontszámát.</div></section>
-<section class="panel"><h3 style="margin:0 0 10px">Kamera és táblakalibrálás</h3><div class="camwrap"><video id="video" class="camera" autoplay playsinline muted></video><canvas id="calcanvas" class="calcanvas"></canvas></div><div style="margin-top:9px"><label for="cameraSelect">Kamera kiválasztása</label><select id="cameraSelect" style="width:100%"><option value="">Alapértelmezett kamera</option></select></div><div class="actions" style="margin-top:9px"><button id="refreshcams">Kamerák keresése</button><button id="startcam" class="primary">Kamera indítása</button><button id="stopcam">Leállítás</button></div><div class="actions" style="margin-top:8px"><button id="autodetect" class="primary">Tábla automatikus keresése</button></div><div class="actions" style="margin-top:8px"><button id="calstart">Kézi kalibrálás</button><button id="calreset">Kalibrálás törlése</button></div><div class="calhelp" id="calhelp">Kalibrálás: indítsd el a kamerát, majd a kalibrálás gombot. A képen koppints sorban a tábla közepére, a dupla gyűrű bal szélére, a dupla gyűrű felső szélére, végül a 20-as szektor középvonalára. A telefon maradjon fix helyen.</div><div class="status" id="camstatus">A kameraválasztóval a böngésző által elérhető telefonos vagy külső USB-kamera választható. Az automatikus keresés a tábla külső peremét kontúr- és ellipszisillesztéssel próbálja megtalálni; a szektorirány és a nyilak felismerése még külön fejlesztés.</div><div id="calresult" class="status"></div></section>
+<section class="panel"><h3 style="margin:0 0 10px">Kamera és táblakalibrálás</h3><div class="camwrap"><video id="video" class="camera" autoplay playsinline muted></video><canvas id="calcanvas" class="calcanvas"></canvas></div><div style="margin-top:9px"><label for="cameraSelect">Kamera kiválasztása</label><select id="cameraSelect" style="width:100%"><option value="">Alapértelmezett kamera</option></select></div><div class="actions" style="margin-top:9px"><button id="refreshcams">Kamerák keresése</button><button id="startcam" class="primary">Kamera indítása</button><button id="stopcam">Leállítás</button></div><div class="actions" style="margin-top:8px"><button id="autodetect" class="primary">Tábla automatikus keresése</button><button id="rimestimate">Külső perem becslése</button></div><div class="actions" style="margin-top:8px"><button id="calstart">Kézi kalibrálás</button><button id="calreset">Kalibrálás törlése</button></div><div class="calhelp" id="calhelp">Kalibrálás: indítsd el a kamerát, majd a kalibrálás gombot. A képen koppints sorban a tábla közepére, a dupla gyűrű bal szélére, a dupla gyűrű felső szélére, végül a 20-as szektor középvonalára. A telefon maradjon fix helyen.</div><div class="status" id="camstatus">A kameraválasztóval a böngésző által elérhető telefonos vagy külső USB-kamera választható. Az automatikus keresés a tábla külső peremét kontúr- és ellipszisillesztéssel próbálja megtalálni; a szektorirány és a nyilak felismerése még külön fejlesztés.</div><div id="calresult" class="status"></div></section>
 <section class="panel"><h3 style="margin:0 0 8px">Játékmenet</h3><div id="log" class="history">Még nincs dobás.</div><p class="status warn">Fontos: ez egy működő pontszámoló prototípus. A kamera jelenleg csak képet mutat; AI-találatfelismerést és automatikus szektorazonosítást még nem végez.</p></section>
 </main>
 <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
@@ -26,7 +26,7 @@ $('newgame').onclick=fresh;$('submit').onclick=record;$('undo').onclick=undo;$('
 [0,20,40,60,80,100,120,140,160,180].forEach(v=>{let b=document.createElement('button');b.textContent=v;b.onclick=()=>{$('throw').value=v};$('pad').appendChild(b)});
 
 const cv=$('calcanvas'),ctx=cv.getContext('2d');
-let calMode=false,calPts=[],draftPts=[],calibration=null,autoCircle=null;
+let calMode=false,calPts=[],draftPts=[],calibration=null,autoCircle=null,rimEstimate=null;
 function fitCanvas(){
  const r=cv.getBoundingClientRect(),dpr=window.devicePixelRatio||1;
  cv.width=Math.round(r.width*dpr);cv.height=Math.round(r.height*dpr);
@@ -34,6 +34,7 @@ function fitCanvas(){
 }
 function drawCal(){
  const r=cv.getBoundingClientRect();ctx.clearRect(0,0,r.width,r.height);
+ if(rimEstimate){ctx.save();ctx.translate(rimEstimate.x*r.width,rimEstimate.y*r.height);ctx.rotate(rimEstimate.angle||0);ctx.beginPath();ctx.ellipse(0,0,rimEstimate.rx*r.width,rimEstimate.ry*r.height,0,0,Math.PI*2);ctx.strokeStyle='#ffbf69';ctx.lineWidth=2;ctx.setLineDash([8,5]);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
  if(autoCircle){ctx.save();ctx.translate(autoCircle.x*r.width,autoCircle.y*r.height);ctx.rotate(autoCircle.angle||0);ctx.beginPath();ctx.ellipse(0,0,autoCircle.rx*r.width,autoCircle.ry*r.height,0,0,Math.PI*2);ctx.strokeStyle='#42e6ff';ctx.lineWidth=3;ctx.stroke();ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fillStyle='#42e6ff';ctx.fill();ctx.restore();}
  const visiblePts=calMode?draftPts:calPts;
  visiblePts.forEach((p,i)=>{const x=p.x*r.width,y=p.y*r.height;ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fillStyle='#35c7a2';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#061b18';ctx.stroke();ctx.fillStyle='white';ctx.font='bold 14px system-ui';ctx.fillText(String(i+1),x+10,y-10);});
@@ -86,6 +87,22 @@ try{
 }catch(e){$('calresult').textContent='A korábbi kalibráció nem olvasható; szükség esetén kézzel újra beállítható.';}
 fitCanvas();calPrompt();
 
+
+
+// A kézi kalibráció dupla gyűrűjének méretéből becsült külső táblaátmérő.
+// Szabványos sisal táblán a külső perem sugara kb. 1,32-szerese a dupla gyűrű külső sugarának.
+// Ez geometriai becslés, nem automatikus peremfelismerés és nem perspektívakorrekció.
+$('rimestimate').onclick=()=>{
+ const pts=calPts;
+ if(pts.length!==4){$('calresult').textContent='Előbb készítsd el a négypontos kézi kalibrációt.';return;}
+ const c=pts[0],left=pts[1],top=pts[2];
+ const rect=cv.getBoundingClientRect();
+ const rx=Math.hypot((left.x-c.x)*rect.width,(left.y-c.y)*rect.height)*1.32;
+ const ry=Math.hypot((top.x-c.x)*rect.width,(top.y-c.y)*rect.height)*1.32;
+ rimEstimate={x:c.x,y:c.y,rx:rx/rect.width,ry:ry/rect.height,angle:0};
+ $('calresult').textContent='Narancssárga szaggatott vonal: a tábla külső peremének becsült helye a kézi kalibráció alapján. Ellenőrizd a képen; ferde kameraállásnál eltérés lehet.';
+ drawCal();
+};
 
 // Külső perem keresése: Canny-élek + kontúrok + ellipszisillesztés.
 // A képkocka alapján becsüli meg a táblát; eredménye mindig vizuálisan ellenőrizendő.
