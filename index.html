@@ -47,10 +47,10 @@ function calPrompt(){
  $('calhelp').textContent=calMode?(count<4?msgs[count]:'Kalibráció mentése…'):'A mentett kézi kalibráció megmarad. Új kalibrálás csak a Kézi kalibrálás gombbal indul; a táblakeresés nem írja felül.';
 }
 function saveCalibration(points){
- calibration={points:points.map(p=>({x:p.x,y:p.y})),savedAt:new Date().toISOString(),version:2};
+ calibration={points:points.map(p=>({x:p.x,y:p.y})),savedAt:new Date().toISOString(),version:3,cameraId:activeCameraId||$('cameraSelect').value||null,cameraLabel:activeCameraLabel||null};
  localStorage.setItem('dartCalibration',JSON.stringify(calibration));
  calPts=calibration.points.map(p=>({...p}));
- $('calresult').textContent='Kézi kalibráció mentve ezen a telefonon. Az automatikus táblakeresés ezt nem módosítja.';
+ $('calresult').textContent='Kézi kalibráció mentve ehhez a kamerához: '+(calibration.cameraLabel||'kiválasztott kamera')+'. Az automatikus táblakeresés ezt nem módosítja.';
 }
 cv.addEventListener('click',e=>{
  if(!calMode)return;
@@ -81,7 +81,7 @@ try{
  const saved=JSON.parse(localStorage.getItem('dartCalibration')||'null');
  if(saved&&Array.isArray(saved.points)&&saved.points.length===4){
   calibration=saved;calPts=saved.points.map(p=>({x:Number(p.x),y:Number(p.y)}));
-  $('calresult').textContent='Korábbi kézi kalibráció betöltve.';
+  $('calresult').textContent='Korábbi kézi kalibráció betöltve.'+(saved.cameraLabel?' Kamera: '+saved.cameraLabel+'.':'');
  }
 }catch(e){$('calresult').textContent='A korábbi kalibráció nem olvasható; szükség esetén kézzel újra beállítható.';}
 fitCanvas();calPrompt();
@@ -137,9 +137,13 @@ $('autodetect').onclick=async()=>{
  finally{[srcMat,gray,blur,edges,hierarchy].forEach(m=>{if(m)m.delete();});if(contours){for(let i=0;i<contours.size();i++){try{contours.get(i).delete()}catch(_){}}contours.delete();}}
 };
 
-let stream=null;
+let stream=null,activeCameraId=null,activeCameraLabel=null;
+const CAMERA_PREF_KEY='dartPreferredCameraId';
+const storedCameraId=localStorage.getItem(CAMERA_PREF_KEY)||'';
+if(storedCameraId)$('cameraSelect').value=storedCameraId;
+$('cameraSelect').addEventListener('change',()=>{localStorage.setItem(CAMERA_PREF_KEY,$('cameraSelect').value);$('camstatus').textContent='Kiválasztott kamera módosítva. Indítsd el a kamerát a váltáshoz; a korábbi kalibráció nem törlődik.';});
 async function refreshCameraList(){
- const sel=$('cameraSelect'), previous=sel.value;
+ const sel=$('cameraSelect'), previous=sel.value||localStorage.getItem(CAMERA_PREF_KEY)||'';
  if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices){$('camstatus').textContent='Ez a böngésző nem támogatja a kamerák listázását.';return;}
  try{
   const devices=await navigator.mediaDevices.enumerateDevices();
@@ -152,7 +156,7 @@ async function refreshCameraList(){
   });
   if(previous&&cams.some(d=>d.deviceId===previous))sel.value=previous;
   $('camstatus').textContent=cams.length
-   ?('Elérhető kamerák: '+cams.length+'. Válaszd ki a kívánt kamerát. A külső USB-kamera csak akkor jelenik meg, ha az Android/böngésző hozzáférést biztosít hozzá.')
+   ?('Elérhető kamerák: '+cams.length+'. Válaszd ki a kívánt kamerát. A választás megmarad a következő megnyitásra is.')
    :'Nem található kamera. Engedélyezd a kamera használatát, majd frissítsd a listát.';
  }catch(e){$('camstatus').textContent='Nem sikerült lekérni a kamerákat: '+e.message;}
 }
@@ -166,17 +170,20 @@ $('startcam').onclick=async()=>{
   $('video').srcObject=stream;
   await $('video').play();
   const track=stream.getVideoTracks()[0], settings=track.getSettings();
+  activeCameraId=settings.deviceId||chosen||null;activeCameraLabel=track.label||'kiválasztott kamera';
+  if(activeCameraId)localStorage.setItem(CAMERA_PREF_KEY,activeCameraId);
+  const mismatch=calibration&&calibration.cameraId&&activeCameraId&&calibration.cameraId!==activeCameraId;
   $('camstatus').textContent='Aktív kamera: '+(track.label||'kiválasztott kamera')+
    (settings.width&&settings.height?(' · '+settings.width+'×'+settings.height):'')+
-   '. A kézi kalibráció mentése változatlanul megmarad.';
+   '. '+(mismatch?'FIGYELEM: a mentett kézi kalibráció másik kamerához készült. Készíts új kalibrációt ehhez a kamerához.':'A mentett kézi kalibráció ehhez a kamerához használható.') ;
   await refreshCameraList();
   fitCanvas();
  }catch(e){$('camstatus').textContent='Nem sikerült elindítani a kiválasztott kamerát: '+e.message+' — ellenőrizd a kameraengedélyt, az USB-OTG kapcsolatot és a HTTPS megnyitást.';}
 };
 $('stopcam').onclick=()=>{
  if(stream)stream.getTracks().forEach(t=>t.stop());
- stream=null;$('video').srcObject=null;
- $('camstatus').textContent='Kamera leállítva.';calMode=false;
+ stream=null;activeCameraId=null;activeCameraLabel=null;$('video').srcObject=null;
+ $('camstatus').textContent='Kamera leállítva. A kameraválasztás és a mentett kalibráció megmarad.';calMode=false;
 };
 if(navigator.mediaDevices&&navigator.mediaDevices.addEventListener)
  navigator.mediaDevices.addEventListener('devicechange',refreshCameraList);
