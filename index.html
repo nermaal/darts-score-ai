@@ -2,16 +2,16 @@
 <html lang="hu">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101827"><title>Dart Master AI – v10</title>
+<meta name="theme-color" content="#101827"><title>Dart Master AI – v11</title>
 <style>
 :root{color-scheme:dark;--bg:#101827;--panel:#1b283b;--muted:#a8b5c7;--accent:#35c7a2;--red:#ff6868}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f4f7fb;font:16px system-ui, sans-serif;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}header{padding:16px 2px 10px}h1{font-size:23px;margin:0}small,.muted{color:var(--muted)}main{max-width:720px;margin:auto}.panel{background:var(--panel);border-radius:16px;padding:15px;margin:12px 0}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1}label{display:block;color:var(--muted);font-size:13px;margin-bottom:5px}select,input,button{font:inherit;border-radius:10px;border:1px solid #40516a;padding:11px;background:#111c2c;color:#fff;min-width:0}input[type=number]{width:100%}button{background:#263951;cursor:pointer}button.primary{background:var(--accent);color:#06251e;border:0;font-weight:700}button:disabled{opacity:.45}.scores{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.player{background:#111c2c;border-radius:12px;padding:12px}.player.active{outline:2px solid var(--accent)}.big{font-size:32px;font-weight:800}.history{font-size:13px;color:var(--muted);max-height:110px;overflow:auto}.keypad{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:10px}.keypad button{padding:13px 3px}.camera{width:100%;height:38vh;max-height:420px;background:#080d15;border-radius:12px;object-fit:contain;display:block}.camwrap{position:relative}.calcanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:manipulation}.calhelp{font-size:13px;color:var(--muted);line-height:1.45}.status{font-size:13px;color:var(--muted);margin-top:7px}.hidden{display:none}.warn{color:#ffd18a}.actions{display:flex;gap:8px}.actions button{flex:1}
 </style></head>
 <body><main>
-<header><h1>🎯 Dart Master AI</h1><small>v10 · OpenCV betöltés javítva</small></header>
+<header><h1>🎯 Dart Master AI</h1><small>v11 · perspektívakorrekció ellenőrzéssel</small></header>
 <section class="panel"><div class="row"><div><label>Játéktípus</label><select id="game"><option value="301">301</option><option value="501" selected>501</option><option value="701">701</option><option value="1001">1001</option><option value="3001">3001</option></select></div><div><label>Játékosok</label><select id="players"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div></div><div class="row" style="margin-top:10px"><label style="display:flex;align-items:center;gap:8px"><input id="doubleout" type="checkbox" style="width:auto"> Double Out</label><label style="display:flex;align-items:center;gap:8px"><input id="lastdouble" type="checkbox" style="width:auto"> Utolsó nyíl dupla</label><button id="newgame" class="primary">Új játék</button></div></section>
 <section class="panel"><div class="scores" id="scores"></div></section>
 <section class="panel"><div class="row"><div><label>Dobott pont (az egész kör, 0–180)</label><input id="throw" type="number" min="0" max="180" inputmode="numeric" placeholder="pl. 100"></div><div style="align-self:end"><button id="submit" class="primary">Kör rögzítése</button></div></div><div class="keypad" id="pad"></div><div class="actions" style="margin-top:10px"><button id="undo">↶ Visszavonás</button><button id="next">Következő játékos →</button></div><div id="message" class="status" aria-live="polite">Add meg a kör összpontszámát.</div></section>
-<section class="panel"><h3 style="margin:0 0 10px">Kamera és táblakalibrálás</h3><div class="camwrap"><video id="video" class="camera" autoplay playsinline muted></video><canvas id="calcanvas" class="calcanvas"></canvas></div><div style="margin-top:9px"><label for="cameraSelect">Kamera kiválasztása</label><select id="cameraSelect" style="width:100%"><option value="">Alapértelmezett kamera</option></select></div><div class="actions" style="margin-top:9px"><button id="refreshcams">Kamerák keresése</button><button id="startcam" class="primary">Kamera indítása</button><button id="stopcam">Leállítás</button></div><div class="actions" style="margin-top:8px"><button id="autodetect" class="primary">Tábla automatikus keresése</button><button id="rimestimate">Külső perem becslése</button></div><div class="actions" style="margin-top:8px"><button id="calstart">Kézi kalibrálás</button><button id="perspectivestart">Perspektíva kalibrálása</button></div><div class="actions" style="margin-top:8px"><button id="calreset">Kalibrálás törlése</button><button id="rectify">Korrigált kép készítése</button></div><div id="perspectivehelp" class="calhelp">Perspektívakorrekció: külön öt pontos beállítás, a meglévő kézi kalibrációt nem írja felül.</div><canvas id="rectified" style="width:100%;max-height:420px;object-fit:contain;background:#080d15;border-radius:12px;margin-top:8px;display:none"></canvas><div class="calhelp" id="calhelp">Kalibrálás: indítsd el a kamerát, majd a kalibrálás gombot. A képen koppints sorban a tábla közepére, a dupla gyűrű bal szélére, a dupla gyűrű felső szélére, végül a 20-as szektor középvonalára. A telefon maradjon fix helyen.</div><div class="status" id="camstatus">A kameraválasztóval a böngésző által elérhető telefonos vagy külső USB-kamera választható. Az OpenCV-t szükség esetén a felismerés indításakor tölti be, két forrásból próbálkozva. Az automatikus keresés a tábla külső peremét kontúr- és ellipszisillesztéssel próbálja megtalálni; a szektorirány és a nyilak felismerése még külön fejlesztés.</div><div id="calresult" class="status"></div></section>
+<section class="panel"><h3 style="margin:0 0 10px">Kamera és táblakalibrálás</h3><div class="camwrap"><video id="video" class="camera" autoplay playsinline muted></video><canvas id="calcanvas" class="calcanvas"></canvas></div><div style="margin-top:9px"><label for="cameraSelect">Kamera kiválasztása</label><select id="cameraSelect" style="width:100%"><option value="">Alapértelmezett kamera</option></select></div><div class="actions" style="margin-top:9px"><button id="refreshcams">Kamerák keresése</button><button id="startcam" class="primary">Kamera indítása</button><button id="stopcam">Leállítás</button></div><div class="actions" style="margin-top:8px"><button id="autodetect" class="primary">Tábla automatikus keresése</button><button id="rimestimate">Külső perem becslése</button></div><div class="actions" style="margin-top:8px"><button id="calstart">Kézi kalibrálás</button><button id="perspectivestart">Perspektíva kalibrálása</button></div><div class="actions" style="margin-top:8px"><button id="perspectiveundo">Utolsó pont vissza</button><button id="perspectivereset">Perspektívapontok törlése</button></div><div class="actions" style="margin-top:8px"><button id="calreset">Kalibrálás törlése</button><button id="rectify">Korrigált kép készítése</button></div><div id="perspectivehelp" class="calhelp">Perspektívakorrekció: külön öt pontos beállítás, a meglévő kézi kalibrációt nem írja felül.</div><canvas id="rectified" style="width:100%;max-height:420px;object-fit:contain;background:#080d15;border-radius:12px;margin-top:8px;display:none"></canvas><div class="calhelp" id="calhelp">Kalibrálás: indítsd el a kamerát, majd a kalibrálás gombot. A képen koppints sorban a tábla közepére, a dupla gyűrű bal szélére, a dupla gyűrű felső szélére, végül a 20-as szektor középvonalára. A telefon maradjon fix helyen.</div><div class="status" id="camstatus">A kameraválasztóval a böngésző által elérhető telefonos vagy külső USB-kamera választható. Az OpenCV-t szükség esetén a felismerés indításakor tölti be, két forrásból próbálkozva. Az automatikus keresés a tábla külső peremét kontúr- és ellipszisillesztéssel próbálja megtalálni; a szektorirány és a nyilak felismerése még külön fejlesztés.</div><div id="calresult" class="status"></div></section>
 <section class="panel"><h3 style="margin:0 0 8px">Játékmenet</h3><div id="log" class="history">Még nincs dobás.</div><p class="status warn">Fontos: ez egy működő pontszámoló prototípus. A kamera jelenleg csak képet mutat; AI-találatfelismerést és automatikus szektorazonosítást még nem végez.</p></section>
 </main>
 
@@ -80,7 +80,8 @@ function drawCal(){
  if(rimEstimate){ctx.save();ctx.translate(vr.x+rimEstimate.x*vr.width,vr.y+rimEstimate.y*vr.height);ctx.rotate(rimEstimate.angle||0);ctx.beginPath();ctx.ellipse(0,0,rimEstimate.rx*vr.width,rimEstimate.ry*vr.height,0,0,Math.PI*2);ctx.strokeStyle='#ffbf69';ctx.lineWidth=2;ctx.setLineDash([8,5]);ctx.stroke();ctx.setLineDash([]);ctx.restore();}
  if(autoCircle){ctx.save();ctx.translate(vr.x+autoCircle.x*vr.width,vr.y+autoCircle.y*vr.height);ctx.rotate(autoCircle.angle||0);ctx.beginPath();ctx.ellipse(0,0,autoCircle.rx*vr.width,autoCircle.ry*vr.height,0,0,Math.PI*2);ctx.strokeStyle='#42e6ff';ctx.lineWidth=3;ctx.stroke();ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.fillStyle='#42e6ff';ctx.fill();ctx.restore();}
  if(perspectiveMode||perspectivePts.length){
-  perspectivePts.forEach((p,i)=>{const x=vr.x+p.x*vr.width,y=vr.y+p.y*vr.height;ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fillStyle='#ffbf69';ctx.fill();ctx.fillStyle='#101827';ctx.font='bold 12px system-ui';ctx.fillText(String(i+1),x+8,y-7);});
+  if(perspectivePts.length>=2){ctx.beginPath();perspectivePts.slice(0,Math.min(4,perspectivePts.length)).forEach((p,i)=>{const x=vr.x+p.x*vr.width,y=vr.y+p.y*vr.height;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});if(perspectivePts.length>=4)ctx.closePath();ctx.strokeStyle='#ffbf69';ctx.lineWidth=2;ctx.setLineDash([7,4]);ctx.stroke();ctx.setLineDash([]);}
+  perspectivePts.forEach((p,i)=>{const x=vr.x+p.x*vr.width,y=vr.y+p.y*vr.height;ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fillStyle=i===4?'#ff6868':'#ffbf69';ctx.fill();ctx.fillStyle='#101827';ctx.font='bold 12px system-ui';ctx.fillText(String(i+1),x+8,y-7);});
  }
  const visiblePts=calMode?draftPts:calPts;
  visiblePts.forEach((p,i)=>{const x=vr.x+p.x*vr.width,y=vr.y+p.y*vr.height;ctx.beginPath();ctx.arc(x,y,7,0,Math.PI*2);ctx.fillStyle='#35c7a2';ctx.fill();ctx.lineWidth=2;ctx.strokeStyle='#061b18';ctx.stroke();ctx.fillStyle='white';ctx.font='bold 14px system-ui';ctx.fillText(String(i+1),x+10,y-10);});
@@ -151,10 +152,17 @@ fitCanvas();calPrompt();
 
 
 // Ötpontos perspektívakalibráció: külső perem négy szélső pontja + bull közép.
+$('perspectiveundo').onclick=()=>{
+ if(perspectivePts.length){perspectivePts.pop();perspectiveCalibration=null;localStorage.removeItem('dartPerspectiveCalibration');$('perspectivehelp').textContent='Utolsó pont visszavonva. Folytasd a pontok megadását.';drawCal();}
+};
+$('perspectivereset').onclick=()=>{
+ perspectivePts=[];perspectiveCalibration=null;perspectiveMode=false;localStorage.removeItem('dartPerspectiveCalibration');
+ $('rectified').style.display='none';$('perspectivehelp').textContent='A perspektívapontok törölve. A kézi négypontos kalibráció ettől függetlenül megmarad.';drawCal();
+};
 $('perspectivestart').onclick=()=>{
  if(!$('video').srcObject){$('perspectivehelp').textContent='Előbb indítsd el a kamerát.';return;}
  perspectivePts=[];perspectiveMode=true;
- $('perspectivehelp').textContent='Kattints sorban a külső perem tetejére, jobb szélére, aljára, bal szélére, végül a bull közepére. A kamera és a tábla maradjon mozdulatlan.';
+ $('perspectivehelp').textContent='1/5: külső perem teteje. Kattints sorban: 2/5 jobb széle, 3/5 alja, 4/5 bal széle, 5/5 bull közepe. A kamera és a tábla maradjon mozdulatlan.';
  drawCal();
 };
 $('rectify').onclick=async()=>{
@@ -169,15 +177,24 @@ $('rectify').onclick=async()=>{
   const frame=document.createElement('canvas');frame.width=video.videoWidth;frame.height=video.videoHeight;
   frame.getContext('2d').drawImage(video,0,0);
   src=cv.imread(frame);
-  srcPts=cv.matFromArray(5,1,cv.CV_32FC2,perspectiveCalibration.flatMap(p=>[p.x*video.videoWidth,p.y*video.videoHeight]));
-  dstPts=cv.matFromArray(5,1,cv.CV_32FC2,[W/2,0,W,Hh/2,W/2,Hh,0,Hh/2,W/2,Hh/2]);
-  mask=new cv.Mat();
-  H=cv.findHomography(srcPts,dstPts,cv.RANSAC,5,mask);
-  if(H.empty())throw new Error('Nem sikerült a transzformációt kiszámítani.');
+  // A négy külső szélső pont határozza meg a homográfiát.
+  // Az ötödik (bull) pont független ellenőrző pont, nem része az illesztésnek.
+  const outer=perspectiveCalibration.slice(0,4);
+  srcPts=cv.matFromArray(4,1,cv.CV_32FC2,outer.flatMap(p=>[p.x*video.videoWidth,p.y*video.videoHeight]));
+  dstPts=cv.matFromArray(4,1,cv.CV_32FC2,[W/2,0,W,Hh/2,W/2,Hh,0,Hh/2]);
+  H=cv.findHomography(srcPts,dstPts,0);
+  if(!H||H.empty())throw new Error('Nem sikerült a transzformációt kiszámítani. Ellenőrizd a négy külső pont sorrendjét és helyét.');
+  const hp=H.data64F||H.data32F;
+  const bx=perspectiveCalibration[4].x*video.videoWidth,by=perspectiveCalibration[4].y*video.videoHeight;
+  const denom=hp[6]*bx+hp[7]*by+hp[8];
+  if(Math.abs(denom)<1e-8)throw new Error('A bull ellenőrző pont a transzformáció szingularitásához túl közel esik.');
+  const mappedX=(hp[0]*bx+hp[1]*by+hp[2])/denom;
+  const mappedY=(hp[3]*bx+hp[4]*by+hp[5])/denom;
+  const bullError=Math.hypot(mappedX-W/2,mappedY-Hh/2);
   out=new cv.Mat();
   cv.warpPerspective(src,out,H,new cv.Size(W,Hh),cv.INTER_LINEAR,cv.BORDER_CONSTANT,new cv.Scalar(8,13,21,255));
   const target=$('rectified');target.width=W;target.height=Hh;target.style.display='block';cv.imshow(target,out);
-  $('perspectivehelp').textContent='Elkészült a kísérleti perspektívakorrigált kép. Ellenőrizd: a tábla kör alakú-e, és a bull középen van-e. Ez még nem nyílfelismerés.';
+  $('perspectivehelp').textContent='Elkészült a korrigált kép. A bull ellenőrzőpontjának középponti eltérése: '+bullError.toFixed(1)+' px. '+(bullError<25?'A geometriai ellenőrzés megfelelő.':'Az eltérés nagy: ellenőrizd újra a négy külső pontot és a bull közepét.')+' Nézd meg, hogy a tábla kör alakú-e. Ez még nem nyílfelismerés.';
  }catch(e){$('perspectivehelp').textContent='Perspektívakorrekciós hiba: '+e.message;}
  finally{[src,srcPts,dstPts,mask,H,out].forEach(m=>{if(m)m.delete();});}
 };
