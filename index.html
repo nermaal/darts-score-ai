@@ -2,21 +2,59 @@
 <html lang="hu">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101827"><title>Dart Master AI – v9</title>
+<meta name="theme-color" content="#101827"><title>Dart Master AI – v10</title>
 <style>
 :root{color-scheme:dark;--bg:#101827;--panel:#1b283b;--muted:#a8b5c7;--accent:#35c7a2;--red:#ff6868}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#f4f7fb;font:16px system-ui, sans-serif;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom)}header{padding:16px 2px 10px}h1{font-size:23px;margin:0}small,.muted{color:var(--muted)}main{max-width:720px;margin:auto}.panel{background:var(--panel);border-radius:16px;padding:15px;margin:12px 0}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1}label{display:block;color:var(--muted);font-size:13px;margin-bottom:5px}select,input,button{font:inherit;border-radius:10px;border:1px solid #40516a;padding:11px;background:#111c2c;color:#fff;min-width:0}input[type=number]{width:100%}button{background:#263951;cursor:pointer}button.primary{background:var(--accent);color:#06251e;border:0;font-weight:700}button:disabled{opacity:.45}.scores{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.player{background:#111c2c;border-radius:12px;padding:12px}.player.active{outline:2px solid var(--accent)}.big{font-size:32px;font-weight:800}.history{font-size:13px;color:var(--muted);max-height:110px;overflow:auto}.keypad{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:10px}.keypad button{padding:13px 3px}.camera{width:100%;height:38vh;max-height:420px;background:#080d15;border-radius:12px;object-fit:contain;display:block}.camwrap{position:relative}.calcanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:manipulation}.calhelp{font-size:13px;color:var(--muted);line-height:1.45}.status{font-size:13px;color:var(--muted);margin-top:7px}.hidden{display:none}.warn{color:#ffd18a}.actions{display:flex;gap:8px}.actions button{flex:1}
 </style></head>
 <body><main>
-<header><h1>🎯 Dart Master AI</h1><small>v9 · perspektívakalibrálás</small></header>
+<header><h1>🎯 Dart Master AI</h1><small>v10 · OpenCV betöltés javítva</small></header>
 <section class="panel"><div class="row"><div><label>Játéktípus</label><select id="game"><option value="301">301</option><option value="501" selected>501</option><option value="701">701</option><option value="1001">1001</option><option value="3001">3001</option></select></div><div><label>Játékosok</label><select id="players"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div></div><div class="row" style="margin-top:10px"><label style="display:flex;align-items:center;gap:8px"><input id="doubleout" type="checkbox" style="width:auto"> Double Out</label><label style="display:flex;align-items:center;gap:8px"><input id="lastdouble" type="checkbox" style="width:auto"> Utolsó nyíl dupla</label><button id="newgame" class="primary">Új játék</button></div></section>
 <section class="panel"><div class="scores" id="scores"></div></section>
 <section class="panel"><div class="row"><div><label>Dobott pont (az egész kör, 0–180)</label><input id="throw" type="number" min="0" max="180" inputmode="numeric" placeholder="pl. 100"></div><div style="align-self:end"><button id="submit" class="primary">Kör rögzítése</button></div></div><div class="keypad" id="pad"></div><div class="actions" style="margin-top:10px"><button id="undo">↶ Visszavonás</button><button id="next">Következő játékos →</button></div><div id="message" class="status" aria-live="polite">Add meg a kör összpontszámát.</div></section>
-<section class="panel"><h3 style="margin:0 0 10px">Kamera és táblakalibrálás</h3><div class="camwrap"><video id="video" class="camera" autoplay playsinline muted></video><canvas id="calcanvas" class="calcanvas"></canvas></div><div style="margin-top:9px"><label for="cameraSelect">Kamera kiválasztása</label><select id="cameraSelect" style="width:100%"><option value="">Alapértelmezett kamera</option></select></div><div class="actions" style="margin-top:9px"><button id="refreshcams">Kamerák keresése</button><button id="startcam" class="primary">Kamera indítása</button><button id="stopcam">Leállítás</button></div><div class="actions" style="margin-top:8px"><button id="autodetect" class="primary">Tábla automatikus keresése</button><button id="rimestimate">Külső perem becslése</button></div><div class="actions" style="margin-top:8px"><button id="calstart">Kézi kalibrálás</button><button id="perspectivestart">Perspektíva kalibrálása</button></div><div class="actions" style="margin-top:8px"><button id="calreset">Kalibrálás törlése</button><button id="rectify">Korrigált kép készítése</button></div><div id="perspectivehelp" class="calhelp">Perspektívakorrekció: külön öt pontos beállítás, a meglévő kézi kalibrációt nem írja felül.</div><canvas id="rectified" style="width:100%;max-height:420px;object-fit:contain;background:#080d15;border-radius:12px;margin-top:8px;display:none"></canvas><div class="calhelp" id="calhelp">Kalibrálás: indítsd el a kamerát, majd a kalibrálás gombot. A képen koppints sorban a tábla közepére, a dupla gyűrű bal szélére, a dupla gyűrű felső szélére, végül a 20-as szektor középvonalára. A telefon maradjon fix helyen.</div><div class="status" id="camstatus">A kameraválasztóval a böngésző által elérhető telefonos vagy külső USB-kamera választható. Az automatikus keresés a tábla külső peremét kontúr- és ellipszisillesztéssel próbálja megtalálni; a szektorirány és a nyilak felismerése még külön fejlesztés.</div><div id="calresult" class="status"></div></section>
+<section class="panel"><h3 style="margin:0 0 10px">Kamera és táblakalibrálás</h3><div class="camwrap"><video id="video" class="camera" autoplay playsinline muted></video><canvas id="calcanvas" class="calcanvas"></canvas></div><div style="margin-top:9px"><label for="cameraSelect">Kamera kiválasztása</label><select id="cameraSelect" style="width:100%"><option value="">Alapértelmezett kamera</option></select></div><div class="actions" style="margin-top:9px"><button id="refreshcams">Kamerák keresése</button><button id="startcam" class="primary">Kamera indítása</button><button id="stopcam">Leállítás</button></div><div class="actions" style="margin-top:8px"><button id="autodetect" class="primary">Tábla automatikus keresése</button><button id="rimestimate">Külső perem becslése</button></div><div class="actions" style="margin-top:8px"><button id="calstart">Kézi kalibrálás</button><button id="perspectivestart">Perspektíva kalibrálása</button></div><div class="actions" style="margin-top:8px"><button id="calreset">Kalibrálás törlése</button><button id="rectify">Korrigált kép készítése</button></div><div id="perspectivehelp" class="calhelp">Perspektívakorrekció: külön öt pontos beállítás, a meglévő kézi kalibrációt nem írja felül.</div><canvas id="rectified" style="width:100%;max-height:420px;object-fit:contain;background:#080d15;border-radius:12px;margin-top:8px;display:none"></canvas><div class="calhelp" id="calhelp">Kalibrálás: indítsd el a kamerát, majd a kalibrálás gombot. A képen koppints sorban a tábla közepére, a dupla gyűrű bal szélére, a dupla gyűrű felső szélére, végül a 20-as szektor középvonalára. A telefon maradjon fix helyen.</div><div class="status" id="camstatus">A kameraválasztóval a böngésző által elérhető telefonos vagy külső USB-kamera választható. Az OpenCV-t szükség esetén a felismerés indításakor tölti be, két forrásból próbálkozva. Az automatikus keresés a tábla külső peremét kontúr- és ellipszisillesztéssel próbálja megtalálni; a szektorirány és a nyilak felismerése még külön fejlesztés.</div><div id="calresult" class="status"></div></section>
 <section class="panel"><h3 style="margin:0 0 8px">Játékmenet</h3><div id="log" class="history">Még nincs dobás.</div><p class="status warn">Fontos: ez egy működő pontszámoló prototípus. A kamera jelenleg csak képet mutat; AI-találatfelismerést és automatikus szektorazonosítást még nem végez.</p></section>
 </main>
-<script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+
 <script>
-const $=id=>document.getElementById(id);let names=['Játékos 1','Játékos 2','Játékos 3','Játékos 4'],state,history=[];
+
+const $=id=>document.getElementById(id);
+let openCvPromise=null;
+function ensureOpenCV(){
+ if(openCvPromise)return openCvPromise;
+ openCvPromise=(async()=>{
+  const sources=[
+   'https://docs.opencv.org/4.13.0/opencv.js',
+   'https://cdn.jsdelivr.net/npm/opencv.js@1.2.1/opencv.min.js'
+  ];
+  for(const url of sources){
+   try{
+    await new Promise((resolve,reject)=>{
+     const script=document.createElement('script');
+     script.src=url;script.async=true;
+     script.onload=resolve;
+     script.onerror=()=>reject(new Error('Nem tölthető be: '+url));
+     document.head.appendChild(script);
+    });
+    const deadline=Date.now()+45000;
+    while(Date.now()<deadline){
+     let candidate=window.cv;
+     if(candidate&&typeof candidate.then==='function')candidate=await candidate;
+     if(candidate&&candidate.Mat&&candidate.findHomography&&candidate.warpPerspective){
+      window.cv=candidate;
+      return candidate;
+     }
+     await new Promise(r=>setTimeout(r,150));
+    }
+    throw new Error('Az OpenCV letöltődött, de a WebAssembly inicializálása nem fejeződött be.');
+   }catch(err){
+    console.warn('OpenCV forrás sikertelen:',url,err);
+   }
+  }
+  throw new Error('Az OpenCV egyik forrásból sem tölthető be. Ellenőrizd az internetkapcsolatot, a tartalomszűrőt vagy a vállalati tűzfalat.');
+ })();
+ return openCvPromise;
+}
+let names=['Játékos 1','Játékos 2','Játékos 3','Játékos 4'],state,history=[];
 function fresh(){let n=+$('players').value,start=+$('game').value;state={start,remaining:Array(n).fill(start),turn:0,finished:false,legs:Array(n).fill(0)};history=[];render();$('message').textContent='Új játék indult.';$('log').textContent='Még nincs dobás.'}
 function render(){ $('scores').innerHTML=state.remaining.map((v,i)=>`<div class="player ${i===state.turn&&!state.finished?'active':''}"><div class="muted">${names[i]}</div><div class="big">${v}</div><small>${state.legs[i]} legek</small></div>`).join('');$('submit').disabled=state.finished; }
 function say(t){$('message').textContent=t}
@@ -121,9 +159,8 @@ $('perspectivestart').onclick=()=>{
 };
 $('rectify').onclick=async()=>{
  if(!perspectiveCalibration||perspectiveCalibration.length!==5){$('perspectivehelp').textContent='Előbb végezd el az öt pontos perspektívakalibrálást.';return;}
- const deadline=Date.now()+10000;
- while(!(window.cv&&cv.Mat&&cv.findHomography&&cv.warpPerspective)&&Date.now()<deadline)await new Promise(r=>setTimeout(r,200));
- if(!(window.cv&&cv.Mat&&cv.findHomography&&cv.warpPerspective)){$('perspectivehelp').textContent='Az OpenCV nem töltődött be.';return;}
+ try{await ensureOpenCV();}catch(err){$('perspectivehelp').textContent=err.message;return;}
+ if(!(window.cv&&cv.Mat&&cv.findHomography&&cv.warpPerspective)){$('perspectivehelp').textContent='Az OpenCV betöltődött, de a perspektívakorrekció függvényei nem érhetők el.';return;}
  const video=$('video');
  if(!video.srcObject||video.readyState<2){$('perspectivehelp').textContent='Nincs aktív kamerakép.';return;}
  let src=null,srcPts=null,dstPts=null,mask=null,H=null,out=null;
@@ -170,9 +207,8 @@ $('autodetect').onclick=async()=>{
  const video=$('video');
  if(!video.srcObject||video.readyState<2){$('camstatus').textContent='Előbb indítsd el a kamerát, és várd meg az élő képet.';return;}
  $('camstatus').textContent='A külső perem keresése folyamatban…';
- const deadline=Date.now()+15000;
- while(!(window.cv&&cv.Mat&&cv.findContours&&cv.fitEllipse)&&Date.now()<deadline) await new Promise(r=>setTimeout(r,250));
- if(!(window.cv&&cv.Mat&&cv.findContours&&cv.fitEllipse)){$('camstatus').textContent='Az OpenCV könyvtár nem töltődött be. Ellenőrizd az internetkapcsolatot, majd frissítsd az oldalt.';return;}
+ try{await ensureOpenCV();}catch(err){$('camstatus').textContent=err.message;return;}
+ if(!(window.cv&&cv.Mat&&cv.findContours&&cv.fitEllipse)){$('camstatus').textContent='Az OpenCV betöltődött, de a kontúr- és ellipszisfüggvények nem érhetők el ebben a buildben.';return;}
  let srcMat=null,gray=null,blur=null,edges=null,contours=null,hierarchy=null;
  try{
   const w=800,h=Math.round(video.videoHeight*(800/video.videoWidth));
